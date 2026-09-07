@@ -44,6 +44,9 @@
     const productId = params.get('id'); 
     const totalFrames = parseInt(params.get('frames')) || 18; 
 
+    // Detectar la base URL exacta de tu GitHub Pages automáticamente
+    const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
+
     if (productId) {
       const imgElement = document.getElementById('view-img');
       const statusMsg = document.getElementById('status-msg');
@@ -54,12 +57,12 @@
       let startX = 0;
       let extIndex = 0;
 
-      // Genera la ruta exacta sin espacios: BROIN(1).jpg / .JPG
+      // Rutas absolutas a GitHub
       function getCandidatePaths(id, frame) {
         return [
-          `./${id}(${frame}).jpg`,
-          `./${id}(${frame}).JPG`,
-          `./${id}(${frame}).png`
+          `${baseUrl}${id}(${frame}).jpg`,
+          `${baseUrl}${id}(${frame}).JPG`,
+          `${baseUrl}${id}(${frame}).png`
         ];
       }
 
@@ -68,7 +71,7 @@
         if (extIndex < candidates.length) {
           imgElement.src = candidates[extIndex];
         } else {
-          statusMsg.innerHTML = `<b style="color:red;">No se encontró la imagen:</b><br>${productId}(${frame}).jpg<br><br><small>Revisa que las imágenes estén en la raíz principal de GitHub.</small>`;
+          statusMsg.innerHTML = `<b style="color:red;">No se encontró la imagen:</b><br>${productId}(${frame}).jpg<br><br><small>Comprueba que el nombre en GitHub coincida exactamente.</small>`;
         }
       }
 
