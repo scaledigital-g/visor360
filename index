@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visor 360</title>
+  <!-- Dependencias de Magic 360 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/magic360/5.0.0/magic360.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/magic360/5.0.0/magic360.js"></script>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      display: flex; justify-content: center; align-items: center;
+      background-color: #ffffff;
+    }
+    .Magic360 { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+
+  <div id="container"></div>
+
+  <script>
+    // Lee la variable ?id= de la URL
+    const params = new URLSearchParams(window.location.search);
+    const photoId = params.get('id'); // Ejemplo: 861-12236
+    const cols = params.get('cols') || '36'; // Columnas (por defecto 36)
+
+    if (photoId) {
+      const container = document.getElementById('container');
+      const imgUrl = `https://scale75.com/cdn/shop/files/${photoId}-1.jpg`;
+      const pattern = `${photoId}-{col}.jpg`;
+
+      container.innerHTML = `
+        <a class="Magic360" data-options="filename: ${pattern}; columns: ${cols};" href="#">
+          <img src="${imgUrl}" />
+        </a>
+      `;
+    } else {
+      document.body.innerHTML = "<p style='font-family:sans-serif;'>Falta el parámetro id del producto.</p>";
+    }
+  </script>
+</body>
+</html>
