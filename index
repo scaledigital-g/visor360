@@ -3,42 +3,34 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Visor 360</title>
-  
-  <!-- Estilos e inyector oficial de Magic 360 de Scale75 -->
-  <link rel="stylesheet" href="https://cdn.shopify.com/extensions/01a02d58-b181-7a87-b3b9-a8ab17bdae59/magic-360-226/assets/magic360.css">
-  <link rel="stylesheet" href="https://cdn.shopify.com/extensions/01a02d58-b181-7a87-b3b9-a8ab17bdae59/magic-360-226/assets/magic360.additional.css">
-  <script src="https://apps.magictoolbox.com/shopify/assets/magic360-93259759959.js" type="text/javascript"></script>
-
+  <title>Prueba Visor 360</title>
   <style>
     html, body {
-      margin: 0; padding: 0;
-      width: 100vw; height: 100vh;
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
       overflow: hidden;
-      display: flex; justify-content: center; align-items: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       background-color: #ffffff;
     }
-    .Magic360 { width: 100%; height: 100%; }
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body>
 
-  <div id="container"></div>
-
   <script>
     const params = new URLSearchParams(window.location.search);
-    const productId = params.get('id'); // Ejemplo: varkhun
-
-    if (productId) {
-      const container = document.getElementById('container');
-      container.innerHTML = `
-        <a class="Magic360" data-magic360-id="${productId}" href="#">
-          <img src="https://scale75.com/products/${productId}" style="display:none;" />
-        </a>
-      `;
-    } else {
-      document.body.innerHTML = "<p style='font-family:sans-serif; text-align:center;'>Falta el parámetro id del producto.</p>";
-    }
+    const testImg = "https://images.ecestaticos.com/J5VCGYBQxJH9FEZ2lBo7TtUgSqU=/0x0:2121x1414/1200x1200/filters:fill(white):format(jpg)/f.elconfidencial.com%2Foriginal%2F5b8%2Fa80%2Ff50%2F5b8a80f50eb0691409e9af4b6dbf540c.jpg";
+    
+    document.body.innerHTML = `<img src="${testImg}" alt="Prueba Visor">`;
   </script>
+
 </body>
 </html>
