@@ -6,22 +6,37 @@
   <title>Visor 360 Local</title>
   <style>
     html, body {
-      margin: 0; padding: 0;
-      width: 100vw; height: 100vh;
+      margin: 0; 
+      padding: 0;
+      width: 100vw; 
+      height: 100vh;
       overflow: hidden;
-      display: flex; justify-content: center; align-items: center;
+      display: flex; 
+      justify-content: center; 
+      align-items: center;
       background-color: #ffffff;
       user-select: none;
       font-family: Arial, sans-serif;
     }
     #viewer-container {
-      width: 100%; height: 100%;
-      display: flex; justify-content: center; align-items: center;
+      width: 100%; 
+      height: 100%;
+      display: flex; 
+      justify-content: center; 
+      align-items: center;
       cursor: grab;
       position: relative;
     }
     #viewer-container:active { cursor: grabbing; }
-    img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    
+    /* Ajuste para máxima escala limpia */
+    img { 
+      width: 100%;
+      height: 100%;
+      object-fit: contain; /* Ajusta la figura al máximo recuadro sin deformarla */
+      transform: scale(1.05); /* Ligerísimo zoom para aprovechar márgenes */
+    }
+    
     #status-msg {
       position: absolute;
       color: #333;
@@ -44,7 +59,7 @@
     const productId = params.get('id'); 
     const totalFrames = parseInt(params.get('frames')) || 18; 
 
-    // Detectar la base URL exacta de tu GitHub Pages automáticamente
+    // Detectar la base URL exacta de GitHub Pages automáticamente
     const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
 
     if (productId) {
@@ -57,7 +72,6 @@
       let startX = 0;
       let extIndex = 0;
 
-      // Rutas absolutas a GitHub
       function getCandidatePaths(id, frame) {
         return [
           `${baseUrl}${id}(${frame}).jpg`,
@@ -71,7 +85,7 @@
         if (extIndex < candidates.length) {
           imgElement.src = candidates[extIndex];
         } else {
-          statusMsg.innerHTML = `<b style="color:red;">No se encontró la imagen:</b><br>${productId}(${frame}).jpg<br><br><small>Comprueba que el nombre en GitHub coincida exactamente.</small>`;
+          statusMsg.innerHTML = `<b style="color:red;">No se encontró la imagen:</b><br>${productId}(${frame}).jpg`;
         }
       }
 
