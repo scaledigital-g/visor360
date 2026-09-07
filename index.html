@@ -28,6 +28,7 @@
       font-size: 14px;
       text-align: center;
       padding: 20px;
+      line-height: 1.5;
     }
   </style>
 </head>
@@ -51,14 +52,24 @@
       let currentFrame = 1;
       let isDragging = false;
       let startX = 0;
+      let extIndex = 0;
 
-      function getImagePath(frame) {
-        // Formato con espacio codificado para la web
-        return `./${encodeURIComponent(productId)}%20(${frame}).jpg`;
+      // Genera la ruta exacta sin espacios: BROIN(1).jpg / .JPG
+      function getCandidatePaths(id, frame) {
+        return [
+          `./${id}(${frame}).jpg`,
+          `./${id}(${frame}).JPG`,
+          `./${id}(${frame}).png`
+        ];
       }
 
-      function updateImage(frame) {
-        imgElement.src = getImagePath(frame);
+      function loadFrame(frame) {
+        const candidates = getCandidatePaths(productId, frame);
+        if (extIndex < candidates.length) {
+          imgElement.src = candidates[extIndex];
+        } else {
+          statusMsg.innerHTML = `<b style="color:red;">No se encontró la imagen:</b><br>${productId}(${frame}).jpg<br><br><small>Revisa que las imágenes estén en la raíz principal de GitHub.</small>`;
+        }
       }
 
       imgElement.onload = function() {
@@ -67,17 +78,13 @@
       };
 
       imgElement.onerror = function() {
-        // Si falla con .jpg intenta en mayúsculas .JPG
-        if (imgElement.src.endsWith('.jpg')) {
-          imgElement.src = `./${encodeURIComponent(productId)}%20(${currentFrame}).JPG`;
-        } else {
-          statusMsg.innerHTML = `<b style="color:red;">Error al cargar la imagen:</b><br>${productId} (${currentFrame}).jpg<br><br><small>Comprueba si las fotos están subidas a la raíz principal de GitHub.</small>`;
-        }
+        extIndex++;
+        loadFrame(currentFrame);
       };
 
-      updateImage(currentFrame);
+      loadFrame(currentFrame);
 
-      // Controles de arrastre
+      // Controles táctiles y ratón
       const startAction = (x) => { isDragging = true; startX = x; };
       const stopAction = () => { isDragging = false; };
       const moveAction = (x) => {
@@ -89,7 +96,7 @@
           } else {
             currentFrame = currentFrame <= 1 ? totalFrames : currentFrame - 1;
           }
-          updateImage(currentFrame);
+          loadFrame(currentFrame);
           startX = x;
         }
       };
