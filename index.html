@@ -12,44 +12,65 @@
       display: flex; justify-content: center; align-items: center;
       background-color: #ffffff;
       user-select: none;
+      font-family: sans-serif;
     }
     #viewer-container {
       width: 100%; height: 100%;
       display: flex; justify-content: center; align-items: center;
       cursor: grab;
+      position: relative;
     }
     #viewer-container:active { cursor: grabbing; }
     img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    #status-msg {
+      position: absolute;
+      color: #666;
+      font-size: 14px;
+      text-align: center;
+      padding: 20px;
+    }
   </style>
 </head>
 <body>
 
   <div id="viewer-container">
-    <img id="view-img" src="" alt="Cargando 360..." />
+    <div id="status-msg">Cargando visor 360...</div>
+    <img id="view-img" src="" style="display:none;" />
   </div>
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const productId = params.get('id'); // Ejemplo: BROIN
-    const totalFrames = parseInt(params.get('frames')) || 18; // 18 por defecto
+    const productId = params.get('id'); 
+    const totalFrames = parseInt(params.get('frames')) || 18; 
 
     if (productId) {
       const imgElement = document.getElementById('view-img');
+      const statusMsg = document.getElementById('status-msg');
       const container = document.getElementById('viewer-container');
       
       let currentFrame = 1;
       let isDragging = false;
       let startX = 0;
 
-      function updateImage(frame) {
-        // Lee el formato con espacio y paréntesis: BROIN (1).jpg, BROIN (2).jpg...
-        imgElement.src = `./${encodeURIComponent(productId)} (${frame}).jpg`;
+      function getImagePath(frame) {
+        return `./${productId} (${frame}).jpg`;
       }
 
-      // Carga la primera imagen
+      function updateImage(frame) {
+        imgElement.src = getImagePath(frame);
+      }
+
+      imgElement.onload = function() {
+        statusMsg.style.display = 'none';
+        imgElement.style.display = 'block';
+      };
+
+      imgElement.onerror = function() {
+        statusMsg.innerHTML = `<b style="color:red;">Error al cargar la imagen:</b><br>${getImagePath(currentFrame)}<br><br><small>Verifica que las fotos estén subidas a GitHub con el nombre exacto.</small>`;
+      };
+
       updateImage(currentFrame);
 
-      // Controles de arrastre (Mouse y Touch)
       const startAction = (x) => { isDragging = true; startX = x; };
       const stopAction = () => { isDragging = false; };
       const moveAction = (x) => {
@@ -75,7 +96,7 @@
       container.addEventListener('touchmove', (e) => moveAction(e.touches[0].clientX));
 
     } else {
-      document.body.innerHTML = "<p style='font-family:sans-serif; text-align:center;'>Falta el parámetro id del producto.</p>";
+      document.getElementById('status-msg').innerText = "Falta el parámetro id en la URL.";
     }
   </script>
 
