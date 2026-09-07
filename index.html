@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Visor 360 Local</title>
   <style>
     html, body {
@@ -16,6 +16,7 @@
       align-items: center;
       background-color: #ffffff;
       user-select: none;
+      -webkit-user-select: none;
       font-family: Arial, sans-serif;
     }
     #viewer-container {
@@ -26,15 +27,17 @@
       align-items: center;
       cursor: grab;
       position: relative;
+      overflow: hidden; /* Corta los márgenes blancos sobrantes */
     }
     #viewer-container:active { cursor: grabbing; }
     
-    /* Ajuste para máxima escala limpia */
+    /* Zoom aumentado para eliminar los márgenes blancos superior e inferior */
     img { 
       width: 100%;
       height: 100%;
-      object-fit: contain; /* Ajusta la figura al máximo recuadro sin deformarla */
-      transform: scale(1.35); /* Ligerísimo zoom para aprovechar márgenes */
+      object-fit: cover; /* Cambiado a cover para llenar el contenedor */
+      transform: scale(1.8); /* Aumenta la figura para que llene la pantalla en móvil */
+      transform-origin: center center;
     }
     
     #status-msg {
@@ -59,7 +62,7 @@
     const productId = params.get('id'); 
     const totalFrames = parseInt(params.get('frames')) || 18; 
 
-    // Detectar la base URL exacta de GitHub Pages automáticamente
+    // Detectar la base URL exacta de GitHub Pages
     const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
 
     if (productId) {
@@ -107,7 +110,7 @@
       const moveAction = (x) => {
         if (!isDragging) return;
         const delta = x - startX;
-        if (Math.abs(delta) > 10) {
+        if (Math.abs(delta) > 8) { // Sensibilidad mejorada para móviles
           if (delta > 0) {
             currentFrame = currentFrame >= totalFrames ? 1 : currentFrame + 1;
           } else {
