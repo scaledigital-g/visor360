@@ -48,10 +48,28 @@
       color: #333;
       font-size: 13px;
     }
+    #control-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+    }
+    #zoom-toggle {
+      min-height: 44px;
+      padding: 0 10px;
+      border: 1px solid #777;
+      border-radius: 6px;
+      background: #fff;
+      color: #222;
+      font: inherit;
+      cursor: pointer;
+    }
+    #viewer-container[data-zoom] { touch-action: none; cursor: zoom-in; }
+    #viewer-container[data-zoom="active"] { cursor: move; }
     #rotation {
       display: block;
       width: 100%;
-      height: 32px;
+      height: 44px;
       margin: 0;
       cursor: ew-resize;
       accent-color: #333;
@@ -76,7 +94,10 @@
   </div>
 
   <div id="controls" hidden>
-    <input id="rotation" type="range" min="1" value="1" aria-label="Girar figura" aria-describedby="rotation-help" disabled>
+    <div id="control-row">
+      <input id="rotation" type="range" min="1" value="1" aria-label="Girar figura" disabled>
+      <button id="zoom-toggle" type="button" aria-controls="viewer-container" disabled>Ampliar</button>
+    </div>
     <p id="rotation-help">Arrastra la figura o desliza la barra para girarla.</p>
   </div>
 
@@ -95,6 +116,61 @@
       const container = document.getElementById('viewer-container');
       
       const slider = document.getElementById('rotation');
+      const zoomButton = document.getElementById('zoom-toggle');
+      const help = document.getElementById('rotation-help');
+      const rotationHelp = help.textContent;
+      const zoomScale = 2.5;
+      let zoomX = 0;
+      let zoomY = 0;
+
+      function positionZoom(x, y) {
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        if (!width || !height || !imgElement.naturalWidth || !imgElement.naturalHeight) return;
+        const ratio = Math.min(width / imgElement.naturalWidth, height / imgElement.naturalHeight);
+        const limitX = Math.max(0, (imgElement.naturalWidth * ratio * zoomScale - width) / 2);
+        const limitY = Math.max(0, (imgElement.naturalHeight * ratio * zoomScale - height) / 2);
+        zoomX = Math.max(-limitX, Math.min(limitX, x));
+        zoomY = Math.max(-limitY, Math.min(limitY, y));
+        imgElement.style.transform = 'translate(' + zoomX + 'px, ' + zoomY + 'px) scale(' + zoomScale + ')';
+      }
+
+      function focusZoom(clientX, clientY) {
+        const bounds = container.getBoundingClientRect();
+        const x = clientX - bounds.left - bounds.width / 2;
+        const y = clientY - bounds.top - bounds.height / 2;
+        const isActive = container.dataset.zoom === 'active';
+        positionZoom(isActive ? zoomX - x : -x * zoomScale,
+          isActive ? zoomY - y : -y * zoomScale);
+        container.dataset.zoom = 'active';
+        help.textContent = 'Arrastra para ver otro detalle o usa la barra para girar.';
+      }
+
+      zoomButton.addEventListener('click', event => {
+        if (container.hasAttribute('data-zoom')) {
+          delete container.dataset.zoom;
+          imgElement.style.removeProperty('transform');
+          zoomX = 0;
+          zoomY = 0;
+          zoomButton.textContent = 'Ampliar';
+          help.textContent = rotationHelp;
+          return;
+        }
+        container.dataset.zoom = 'select';
+        zoomButton.textContent = 'Vista completa';
+        help.textContent = 'Toca o haz clic en la zona que quieres ampliar.';
+        if (event.detail === 0) {
+          const bounds = container.getBoundingClientRect();
+          focusZoom(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
+        }
+      });
+      imgElement.addEventListener('load', () => {
+        zoomButton.disabled = false;
+        if (container.dataset.zoom === 'active') positionZoom(zoomX, zoomY);
+      });
+      window.addEventListener('resize', () => {
+        if (container.dataset.zoom === 'active') positionZoom(zoomX, zoomY);
+      });
       document.getElementById('controls').hidden = false;
       slider.max = totalFrames;
 
@@ -177,17 +253,31 @@
       container.addEventListener('pointerdown', event => {
         if (!ready || drag || !event.isPrimary || event.button !== 0) return;
         const step = Math.max(12, Math.min(32, container.clientWidth / totalFrames));
-        drag = { pointer: event.pointerId, x: event.clientX, frame: currentFrame, step };
+        drag = {
+          pointer: event.pointerId, x: event.clientX, y: event.clientY,
+          frame: currentFrame, step, zoom: container.dataset.zoom,
+          zoomX, zoomY, moved: false,
+        };
         container.setPointerCapture(event.pointerId);
       });
       container.addEventListener('pointermove', event => {
         if (drag?.pointer !== event.pointerId) return;
-        const distance = (event.clientX - drag.x) / drag.step;
+        const dx = event.clientX - drag.x;
+        const dy = event.clientY - drag.y;
+        if (drag.zoom) {
+          drag.moved ||= Math.hypot(dx, dy) > 5;
+          if (drag.zoom === 'active' && drag.moved) positionZoom(drag.zoomX + dx, drag.zoomY + dy);
+          return;
+        }
+        const distance = dx / drag.step;
         selectFrame(wrapFrame(drag.frame + Math.trunc(distance)));
       });
       for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
         container.addEventListener(type, event => {
-          if (drag?.pointer === event.pointerId) drag = null;
+          if (drag?.pointer !== event.pointerId) return;
+          const tap = Math.hypot(event.clientX - drag.x, event.clientY - drag.y) <= 5;
+          if (type === 'pointerup' && drag.zoom && !drag.moved && tap) focusZoom(event.clientX, event.clientY);
+          drag = null;
         });
       }
       slider.addEventListener('input', () => selectFrame(Number(slider.value)));
