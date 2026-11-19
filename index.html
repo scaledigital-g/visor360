@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Visor 360 Local</title>
+  <title>360° Viewer</title>
   <style>
     html, body {
       margin: 0; 
@@ -165,20 +165,20 @@
 <body>
 
   <div id="viewer-container">
-    <div id="status-msg">Cargando visor 360...</div>
-    <div id="loading-frame" role="status" hidden>Cargando fotograma…</div>
+    <div id="status-msg">Loading 360° viewer…</div>
+    <div id="loading-frame" role="status" hidden>Loading frame…</div>
     <img id="view-img" src="" style="display:none;" draggable="false" />
   </div>
 
   <div id="controls" hidden>
     <div id="control-row">
-      <input id="rotation" type="range" min="1" value="1" aria-label="Girar figura" disabled>
-      <button id="zoom-toggle" type="button" aria-controls="viewer-container" disabled>Ampliar</button>
+      <input id="rotation" type="range" min="1" value="1" aria-label="Rotate the figure" disabled>
+      <button id="zoom-toggle" type="button" aria-controls="viewer-container" disabled>Zoom in</button>
     </div>
-    <p id="rotation-help">Arrastra la figura o desliza la barra para girarla.</p>
+    <p id="rotation-help">Drag the figure or use the slider to rotate it.</p>
     <div id="viewer-actions">
-      <button id="reset-view" type="button">Volver al frente</button>
-      <button id="fullscreen" type="button">Pantalla completa</button>
+      <button id="reset-view" type="button">Center</button>
+      <button id="fullscreen" type="button">Full screen</button>
     </div>
   </div>
 
@@ -224,7 +224,7 @@
         positionZoom(isActive ? zoomX - x : -x * zoomScale,
           isActive ? zoomY - y : -y * zoomScale);
         container.dataset.zoom = 'active';
-        help.textContent = 'Arrastra para ver otro detalle o usa la barra para girar.';
+        help.textContent = 'Drag to explore the detail or use the slider to rotate.';
       }
 
       zoomButton.addEventListener('click', event => {
@@ -233,13 +233,13 @@
           imgElement.style.removeProperty('transform');
           zoomX = 0;
           zoomY = 0;
-          zoomButton.textContent = 'Ampliar';
+          zoomButton.textContent = 'Zoom in';
           help.textContent = rotationHelp;
           return;
         }
         container.dataset.zoom = 'select';
-        zoomButton.textContent = 'Vista completa';
-        help.textContent = 'Toca o haz clic en la zona que quieres ampliar.';
+        zoomButton.textContent = 'Full view';
+        help.textContent = 'Tap or click the area you want to zoom in on.';
         if (event.detail === 0) {
           const bounds = container.getBoundingClientRect();
           focusZoom(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
@@ -255,7 +255,7 @@
       const fullscreen = document.getElementById('fullscreen');
       const page = document.documentElement;
       const canFullscreen = () => document.fullscreenEnabled && typeof page.requestFullscreen === 'function';
-      if (!canFullscreen()) fullscreen.textContent = 'Abrir visor';
+      if (!canFullscreen()) fullscreen.textContent = 'Open viewer';
       fullscreen.addEventListener('click', async () => {
         if (!canFullscreen() || fullscreen.dataset.fallback) {
           window.open(window.location.href, '_blank', 'noopener,noreferrer');
@@ -266,11 +266,11 @@
           else await page.requestFullscreen();
         } catch {
           fullscreen.dataset.fallback = 'true';
-          fullscreen.textContent = 'Abrir visor';
+          fullscreen.textContent = 'Open viewer';
         }
       });
       document.addEventListener('fullscreenchange', () => {
-        fullscreen.textContent = document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa';
+        fullscreen.textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen';
       });
       document.getElementById('reset-view').addEventListener('click', () => {
         if (container.hasAttribute('data-zoom')) zoomButton.click();
@@ -319,7 +319,7 @@
         clearTimeout(loadingTimer);
         loadingNotice.hidden = true;
         if (!url) {
-          statusMsg.textContent = 'No se encontró el fotograma ' + frame + ' de ' + productId + '.';
+          statusMsg.textContent = 'Could not load frame ' + frame + ' for ' + productId + '.';
           statusMsg.style.display = 'block';
           return;
         }
@@ -398,7 +398,7 @@
       startViewer();
 
     } else {
-      document.getElementById('status-msg').innerText = "Falta el parámetro id en la URL.";
+      document.getElementById('status-msg').innerText = "The viewer link is missing a figure ID.";
     }
   </script>
 
