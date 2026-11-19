@@ -43,14 +43,14 @@
     #controls {
       box-sizing: border-box;
       flex: 0 0 auto;
-      width: min(calc(100% - 24px), 25rem);
+      width: min(calc(100% - 24px), 27rem);
       margin: 0 0 max(10px, env(safe-area-inset-bottom));
-      padding: 4px 12px 9px;
-      border: 1px solid #e7e3dd;
+      padding: 10px clamp(12px, 4vw, 20px) 7px;
+      border: 1px solid #ecc2d7;
       border-radius: 16px;
-      background: #f8f7f4;
+      background: #fff7fb;
       box-shadow: 0 4px 14px rgba(40, 33, 24, 0.08);
-      color: #514d46;
+      color: #573747;
       font: 13px/1.35 system-ui, sans-serif;
       text-align: center;
     }
@@ -58,7 +58,7 @@
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
-      gap: 12px;
+      gap: clamp(14px, 5vw, 24px);
     }
     #zoom-toggle {
       min-height: 44px;
@@ -66,15 +66,15 @@
       padding: 0 12px;
       border: 1px solid transparent;
       border-radius: 10px;
-      background: #302d27;
+      background: #DA046D;
       color: #fff;
       font: 600 13px/1.2 system-ui, sans-serif;
       cursor: pointer;
     }
-    #zoom-toggle:hover:not(:disabled) { background: #4a4236; }
+    #zoom-toggle:hover:not(:disabled) { background: #bc005d; }
     #zoom-toggle:disabled, #rotation:disabled { opacity: 0.55; cursor: default; }
     #zoom-toggle:focus-visible, #rotation:focus-visible {
-      outline: 2px solid #766047;
+      outline: 2px solid #ab0055;
       outline-offset: 2px;
     }
     #viewer-container[data-zoom] { touch-action: none; cursor: zoom-in; }
@@ -92,12 +92,12 @@
     #rotation::-webkit-slider-runnable-track {
       height: 6px;
       border-radius: 8px;
-      background: #d8d1c7;
+      background: #efd0df;
     }
     #rotation::-moz-range-track {
       height: 6px;
       border-radius: 8px;
-      background: #d8d1c7;
+      background: #efd0df;
     }
     #rotation::-webkit-slider-thumb {
       appearance: none;
@@ -106,7 +106,7 @@
       margin-top: -7px;
       border: 2px solid #fff;
       border-radius: 50%;
-      background: #826847;
+      background: #DA046D;
       box-shadow: 0 1px 4px rgba(48, 45, 39, 0.3);
     }
     #rotation::-moz-range-thumb {
@@ -115,10 +115,42 @@
       height: 20px;
       border: 2px solid #fff;
       border-radius: 50%;
-      background: #826847;
+      background: #DA046D;
       box-shadow: 0 1px 4px rgba(48, 45, 39, 0.3);
     }
-    #rotation-help { margin: 3px 0 0; }
+    #rotation-help { margin: 6px 0 2px; }
+    #viewer-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    #viewer-actions button {
+      min-height: 44px;
+      padding: 0 6px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: #a60053;
+      font: 600 13px/1.2 system-ui, sans-serif;
+      cursor: pointer;
+    }
+    #viewer-actions button:hover { text-decoration: underline; }
+    #viewer-actions button:focus-visible { outline: 2px solid #a60053; }
+    #loading-frame {
+      position: absolute;
+      z-index: 1;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: #fff7fb;
+      color: #573747;
+      font: 12px/1.4 system-ui, sans-serif;
+      pointer-events: none;
+      white-space: nowrap;
+    }
 
     #status-msg {
       position: absolute;
@@ -134,6 +166,7 @@
 
   <div id="viewer-container">
     <div id="status-msg">Cargando visor 360...</div>
+    <div id="loading-frame" role="status" hidden>Cargando fotograma…</div>
     <img id="view-img" src="" style="display:none;" draggable="false" />
   </div>
 
@@ -143,6 +176,10 @@
       <button id="zoom-toggle" type="button" aria-controls="viewer-container" disabled>Ampliar</button>
     </div>
     <p id="rotation-help">Arrastra la figura o desliza la barra para girarla.</p>
+    <div id="viewer-actions">
+      <button id="reset-view" type="button">Volver al frente</button>
+      <button id="fullscreen" type="button">Pantalla completa</button>
+    </div>
   </div>
 
   <script>
@@ -215,6 +252,30 @@
       window.addEventListener('resize', () => {
         if (container.dataset.zoom === 'active') positionZoom(zoomX, zoomY);
       });
+      const fullscreen = document.getElementById('fullscreen');
+      const page = document.documentElement;
+      const canFullscreen = () => document.fullscreenEnabled && typeof page.requestFullscreen === 'function';
+      if (!canFullscreen()) fullscreen.textContent = 'Abrir visor';
+      fullscreen.addEventListener('click', async () => {
+        if (!canFullscreen() || fullscreen.dataset.fallback) {
+          window.open(window.location.href, '_blank', 'noopener,noreferrer');
+          return;
+        }
+        try {
+          if (document.fullscreenElement) await document.exitFullscreen();
+          else await page.requestFullscreen();
+        } catch {
+          fullscreen.dataset.fallback = 'true';
+          fullscreen.textContent = 'Abrir visor';
+        }
+      });
+      document.addEventListener('fullscreenchange', () => {
+        fullscreen.textContent = document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa';
+      });
+      document.getElementById('reset-view').addEventListener('click', () => {
+        if (container.hasAttribute('data-zoom')) zoomButton.click();
+        selectFrame(1);
+      });
       document.getElementById('controls').hidden = false;
       slider.max = totalFrames;
 
@@ -245,9 +306,18 @@
         return loadedFrames.get(frame);
       }
 
+      const loadingNotice = document.getElementById('loading-frame');
+      let loadingTimer;
+
       async function renderFrame(frame) {
+        clearTimeout(loadingTimer);
+        loadingTimer = setTimeout(() => {
+          if (frame === currentFrame && imgElement.style.display === 'block') loadingNotice.hidden = false;
+        }, 350);
         const url = await frameUrl(frame);
         if (frame !== currentFrame) return;
+        clearTimeout(loadingTimer);
+        loadingNotice.hidden = true;
         if (!url) {
           statusMsg.textContent = 'No se encontró el fotograma ' + frame + ' de ' + productId + '.';
           statusMsg.style.display = 'block';
