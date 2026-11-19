@@ -1,0 +1,126 @@
+name: Sincronizar fotogramas de Shopify
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17,47 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: shopify-frames
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Consultar archivos de Shopify
+        env:
+          SHOPIFY_CLIENT_SECRET: ${{ secrets.SHOPIFY_CLIENT_SECRET }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { writeFile } from 'node:fs/promises';
+
+          const shop = 'https://c6dhrc-xz.myshopify.com';
+          const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
+          if (!clientSecret) throw new Error('Falta SHOPIFY_CLIENT_SECRET');
+
+          async function post(path, headers, body) {
+            const response = await fetch(shop + path, {
+              method: 'POST',
+              headers,
+              body,
+              redirect: 'error',
+              signal: AbortSignal.timeout(30_000),
+            });
+            if (!response.ok) throw new Error(`Shopify devolvió HTTP ${response.status}`);
+            return response.json();
+          }
+
+          const auth = await post('/admin/oauth/access_token', {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          }, new URLSearchParams({
+            grant_type: 'client_credentials',
+            client_id: '515a7a0bd06dc6c6d0599d0aa71d3c8e',
+            client_secret: clientSecret,
+          }));
+          if (!auth.access_token || auth.scope !== 'read_files') {
+            throw new Error('Shopify no concedió el acceso de solo lectura esperado');
+          }
+
+          const query = `
+            query ViewerFiles($after: String, $search: String!) {
+              files(first: 100, after: $after, query: $search, sortKey: CREATED_AT, reverse: true) {
+                nodes {
+                  fileStatus
+                  ... on MediaImage { image { url } }
+                }
+                pageInfo { hasNextPage endCursor }
+              }
+            }
+          `;
+
+          const products = new Map();
+          const patterns = [
+            ['filename:VISOR360_*', /^VISOR360_([A-Z0-9][A-Z0-9_-]{0,79})_(\d+)\.(?:jpe?g|png|webp)$/i],
+            ['filename:VIKINGRUS_*', /^(VIKINGRUS)_(\d+)\.(?:jpe?g|png|webp)$/i],
+          ];
+
+          for (const [search, pattern] of patterns) {
+            let after = null;
+            do {
+              const result = await post('/admin/api/2026-10/graphql.json', {
+                'Content-Type': 'application/json',
+                'X-Shopify-Access-Token': auth.access_token,
+              }, JSON.stringify({ query, variables: { after, search } }));
+              const files = result.data?.files;
+              if (!files || result.errors?.length) {
+                throw new Error('Falló la consulta de archivos en Shopify');
+              }
+
+              for (const node of files.nodes) {
+                if (node.fileStatus !== 'READY' || !node.image?.url) continue;
+                const url = new URL(node.image.url);
+                if (url.protocol !== 'https:' || url.hostname !== 'cdn.shopify.com') continue;
+                const filename = decodeURIComponent(url.pathname.split('/').at(-1));
+                const match = filename.match(pattern);
+                if (!match) continue;
+                const productId = match[1].toUpperCase();
+                const frame = Number(match[2]);
+                if (!Number.isSafeInteger(frame) || frame < 1 || frame > 1000) continue;
+                if (!products.has(productId)) products.set(productId, new Map());
+                const frames = products.get(productId);
+                if (!frames.has(frame)) frames.set(frame, url.href);
+              }
+
+              const next = files.pageInfo.hasNextPage ? files.pageInfo.endCursor : null;
+              if (files.pageInfo.hasNextPage && (!next || next === after)) {
+                throw new Error('La paginación de Shopify no avanzó');
+              }
+              after = next;
+            } while (after);
+          }
+
+          const manifest = Object.create(null);
+          for (const productId of [...products.keys()].sort()) {
+            manifest[productId] = Object.fromEntries(products.get(productId));
+          }
+          const vikingrus = manifest.VIKINGRUS ?? {};
+          console.log(`VIKINGRUS: ${Object.keys(vikingrus).length} fotogramas en Shopify`);
+          console.log(`${Object.keys(manifest).length} secuencias en el índice`);
+          await writeFile('shopify-frames.json', JSON.stringify(manifest, null, 2) + '\n');
+          NODE
+      - name: Actualizar el índice público si ha cambiado
+        run: |
+          git add -- shopify-frames.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Actualizar índice de fotogramas de Shopify'
+          git pull --rebase origin main
+          git push origin HEAD:main
